@@ -1,0 +1,67 @@
+\documentclass{standalone}
+
+\usepackage{fontspec}
+
+\usepackage{unicode-math}
+\setmathfont[Scale=MatchLowercase]{Asana-Math.otf}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,shadows,fit,decorations.pathreplacing,positioning}
+
+\begin{document}
+
+% Define block styles
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=white, 
+    text width=5em, text centered, rounded corners, minimum
+    height=4em]
+\tikzstyle{unblock} = [block]
+\tikzstyle{lbl} = [rectangle,
+text width=10em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{blank} = [text width=10em, text centered, rounded corners, minimum height=4em]
+
+%%\tikzstyle{otsAE} = [block,text width=20em, minimum height=2em, fill=gray!20]
+\tikzstyle{regexAE} = [block,fill=green!20]
+\tikzstyle{otsAE} = [rulebasedAE,text width=7em, minimum height=2em, fill=gray!20]
+\tikzstyle{rulebasedAE} = [block, fill=gray!30,text width=7em]
+\tikzstyle{decisionAggAE} = [rulebasedAE,text width=10em, minimum height=2em, fill=purple!20]
+
+\tikzstyle{line} = [draw, -latex]
+\tikzstyle{cloud} = [draw, ellipse,fill=white, node distance=3cm,
+    minimum height=2em, text width=4.5em, text badly centered]
+
+    \begin{tikzpicture}[node distance = 100pt, auto]%%,nodes={draw}]
+
+      \node (topRow) {};
+      \node[below=200pt of topRow] (botRow) {};
+      \path (topRow) -- coordinate[midway] (midRow) (botRow);
+      
+      \node at (topRow) (colReader) {};
+      \node[right=of colReader] (colCtakes) {};
+      \node[right=of colCtakes] (colExt) {};
+      \node[right=of colExt] (colMapper) {};
+      \node[right=of colMapper] (colAggs) {};
+      \node[right=110pt of colAggs] (colWriter) {};
+
+      \node[lbl] at (topRow -| colReader) (readerLbl) {Collection Readers};
+      \node[lbl,text width=12em] at (topRow -| colCtakes) (sbdLbl) {Sentence Splitters};
+      \node[lbl] at (topRow -| colExt) (tokLbl) {Tokenizers};
+      \node[lbl] at (topRow -| colMapper) (testsLbl) {Tests};
+      \node[lbl] at (topRow -| colAggs) {\textbullet\textbullet\textbullet};
+      \node[lbl] at (topRow -| colWriter) {Output\\Writer(s)};
+
+      \node[block,below=7pt of readerLbl] (txtReader) {\texttt{txtReader}}; 
+
+      \node[otsAE] at (txtReader -| colCtakes) (newlineSBD) {RegEx\\(newline)}; 
+      \node[otsAE,anchor=north] at ([yshift=-10pt]newlineSBD.south) (openNlpSBD) {OpenNLP\\(en-sent.bin)}; 
+
+      \node[rulebasedAE, text width=10em] at (txtReader -| colExt) (openNlpTok) {OpenNLP\\(en-token.bin,\\en-pos-max-ent.bin)};
+      \node[rulebasedAE,anchor=north] at ([yshift=-10pt]openNlpTok.south) (symbolTok) {OffsetTokenizer\\(symbol)};
+      \node[rulebasedAE,anchor=north] at ([yshift=-10pt]symbolTok.south) (whitespaceTok) {OffsetTokenizer\\(whitespace)};
+
+      \node[block,text width=7em] at (txtReader -| colMapper) (conceptMapperTest) {ConceptMapper\\(symptoms)};
+
+      \node[block] at (txtReader -| colWriter) (xmiWriter) {XMI\\Writer};
+    \end{tikzpicture}
+  \end{document}

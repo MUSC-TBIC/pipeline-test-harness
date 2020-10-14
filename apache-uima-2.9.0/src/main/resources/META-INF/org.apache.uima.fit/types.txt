@@ -1,0 +1,5 @@
+classpath*:desc/types/SourceDocumentInformation.xml
+classpath*:desc/types/TokenAnnotation.xml
+classpath*:desc/types/BaseToken.xml
+classpath*:desc/types/Sentence.xml
+classpath*:desc/types/UmlsTerm.xml
