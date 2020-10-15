@@ -46,6 +46,23 @@ public class CoNLLWriter extends JCasAnnotator_ImplBase {
 	@ConfigurationParameter(name = PARAM_ERRORDIR, description = "Output directory to write broken files", mandatory = true)
 	private String mErrorDir;
 
+    /**
+     * Name of configuration parameter that must be set to the full type description for tokens
+     */
+    public static final String PARAM_TOKENTYPE = "TokenType";
+    @ConfigurationParameter( name = PARAM_TOKENTYPE , 
+                             description = "Full type description for tokens" , 
+                             mandatory = false )
+    private String mTokenType;
+    /**
+     * Name of configuration parameter that must be set to the full type description for sentences
+     */
+    public static final String PARAM_SENTENCETYPE = "SentenceType";
+    @ConfigurationParameter( name = PARAM_SENTENCETYPE , 
+                             description = "Full type description for sentences" , 
+                             mandatory = false )
+    private String mSentenceType;
+
 	private int mTotalDocs;
 	private int mGoodDocs;
 	private int mBadDocs;
@@ -61,7 +78,17 @@ public class CoNLLWriter extends JCasAnnotator_ImplBase {
 			outputDirectory.mkdirs();
 		}
 		mErrorDir = (String) context.getConfigParameterValue( "ErrorDirectory" );
-		
+
+		if( context.getConfigParameterValue( "TokenType" ) == null ){
+		    mTokenType = "org.apache.ctakes.typesystem.type.syntax.BaseToken";
+		} else {
+		    mTokenType = (String) context.getConfigParameterValue( "TokenType" );
+		}
+		if( context.getConfigParameterValue( "SentenceType" ) == null ){
+		    mSentenceType = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence";
+        } else {
+            mSentenceType = (String) context.getConfigParameterValue( "SentenceType" );
+        }
     }
 
 	@Override
@@ -123,8 +150,8 @@ public class CoNLLWriter extends JCasAnnotator_ImplBase {
 		    txtWriter.write( text );
             // write .conll file
 		    TypeSystem typeSystem = aCas.getTypeSystem();
-		    org.apache.uima.cas.Type tokenType = typeSystem.getType( "org.apache.ctakes.typesystem.type.syntax.BaseToken" );
-            org.apache.uima.cas.Type sentenceType = typeSystem.getType( "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence" );
+		    org.apache.uima.cas.Type tokenType = typeSystem.getType( mTokenType );
+            org.apache.uima.cas.Type sentenceType = typeSystem.getType( mSentenceType );
 
             FSIndex dbIndex = aCas.getAnnotationIndex( sentenceType );
             FSIterator spanIterator = dbIndex.iterator();

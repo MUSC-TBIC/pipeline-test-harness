@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Variables you will need to update based on the build
-export VERSION=20.42.1
+export VERSION=20.42.2
 ## Variables you will need to customize to your set-up
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home
 export UIMA_HOME=/Users/pmh/bin/apache-uima-2.9.0
@@ -63,7 +63,7 @@ for SBD in newline opennlp;do \
 	echo ""; \
 	time python3 python/RunModel_CoNLL_Format_Med.py \
 		data/models/2014_mv1_20200226121316.h5 \
-		data/output/txt_newlineSent_opennlpTok_symptomsTest_conll; \
+		data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_conll; \
         ## Score ConceptMapper symptoms
 	echo ""; \
 	echo "Scoring Symptoms:"; \

@@ -153,14 +153,17 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
         ///////////////////////////////////////////////////
         // Sentence Splitters
         ///////////////////////////////////////////////////
+        String sentence_type = null;
         if( pipeline_sbd.equals( "opennlp" ) ){
             mLogger.info( "Loading OpenNLP's en-sent model" );
+            sentence_type = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence";
             module_breadcrumbs += "_opennlpSent";
             AnalysisEngineDescription openNlpSentence = AnalysisEngineFactory.createEngineDescription(
                     OpenNlpSentenceSplitter.class );
             builder.add( openNlpSentence );
         } else if( pipeline_sbd.equals( "newline" ) ) {
             module_breadcrumbs += "_newlineSent";
+            sentence_type = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence";
             mLogger.info( "Loading newline sentence splitter" );
             AnalysisEngineDescription newlineSentence = AnalysisEngineFactory.createEngineDescription(
                     RegexSentenceSplitter.class );
@@ -172,11 +175,11 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
         ///////////////////////////////////////////////////
         // Tokenizers
         ///////////////////////////////////////////////////
-        String tokenizer_type = null;
+        String conceptMapper_token_type = null;
         File tmpTokenizerDescription = null;
         if( pipeline_tokenizer.equals( "whitespace" ) ){
             mLogger.info( "Loading WhitespaceTokenizer" );
-            tokenizer_type = "uima.tt.TokenAnnotation";
+            conceptMapper_token_type = "uima.tt.TokenAnnotation";
             module_breadcrumbs += "_whitespaceTok";
             AnalysisEngineDescription whitespaceTokenizer = AnalysisEngineFactory.createEngineDescription(
                     OffsetTokenizer.class , 
@@ -193,7 +196,7 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
             builder.add( whitespaceTokenizer );
         } else if( pipeline_tokenizer.equals( "symbol" ) ){
             mLogger.info( "Loading SymbolTokenizer" );
-            tokenizer_type = "uima.tt.TokenAnnotation";
+            conceptMapper_token_type = "uima.tt.TokenAnnotation";
             module_breadcrumbs += "_symbolTok";
             AnalysisEngineDescription symbolTokenizer = AnalysisEngineFactory.createEngineDescription(
                     OffsetTokenizer.class , 
@@ -210,7 +213,7 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
             builder.add( symbolTokenizer );
         } else if( pipeline_tokenizer.equals( "opennlp" ) ){
             mLogger.info( "Loading OpenNLP's en-token and en-pos-maxent models" );
-            tokenizer_type = "org.apache.ctakes.typesystem.type.syntax.BaseToken";
+            conceptMapper_token_type = "org.apache.ctakes.typesystem.type.syntax.BaseToken";
             module_breadcrumbs += "_opennlpTok";
             AnalysisEngineDescription openNlpTokenizer = AnalysisEngineFactory.createEngineDescription(
                     OpenNlpTokenizer.class );
@@ -241,7 +244,7 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
                     ConceptMapper.class,
                     "TokenizerDescriptorPath", tmpTokenizerDescription.getAbsolutePath(),
                     "LanguageID", "en",
-                    ConceptMapper.PARAM_TOKENANNOTATION, tokenizer_type ,
+                    ConceptMapper.PARAM_TOKENANNOTATION, conceptMapper_token_type ,
                     ConceptMapper.PARAM_ANNOTATION_NAME, "org.apache.uima.conceptMapper.UmlsTerm",
                     "SpanFeatureStructure", "uima.tcas.DocumentAnnotation",
                     ConceptMapper.PARAM_FEATURE_LIST, conceptFeatureList ,
@@ -278,7 +281,9 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
             AnalysisEngineDescription conllWriter = AnalysisEngineFactory.createEngineDescription(
                     CoNLLWriter.class , 
                     CoNLLWriter.PARAM_OUTPUTDIR , conll_output_dir ,
-                    CoNLLWriter.PARAM_ERRORDIR , conll_error_dir );
+                    CoNLLWriter.PARAM_ERRORDIR , conll_error_dir ,
+                    CoNLLWriter.PARAM_TOKENTYPE , conceptMapper_token_type ,
+                    CoNLLWriter.PARAM_SENTENCETYPE , sentence_type );
             builder.add( conllWriter );
         }
         
