@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Properties>
+    <Property name="LOG_PATTERN">%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    <Property name="logDirectory">logs</Property>
+  </Properties>
+  <Appenders>
+    <Console name="console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+    </Console>
+    <RollingFile name="conceptMapperLog"
+		 fileName="${logDirectory}/conceptMapper.log"
+		 filePattern="${logDirectory}/conceptMapper-%d{yyyy-MM-dd}-%i.log" >
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Policies>
+        <SizeBasedTriggeringPolicy size="19500KB" />
+      </Policies>
+      <DefaultRolloverStrategy max="1"/>
+    </RollingFile>
+    <RollingFile name="pipelineLog"
+		 fileName="${logDirectory}/pipeline.log"
+		 filePattern="${logDirectory}/pipeline-%d{yyyy-MM-dd}-%i.log" >
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Policies>
+        <SizeBasedTriggeringPolicy size="19500KB" />
+      </Policies>
+      <DefaultRolloverStrategy max="1"/>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Logger name="ConceptMapper" additivity="false">
+      <AppenderRef ref="conceptMapperLog" />
+    </Logger>
+    <Root level="info" additivity="false">
+      <AppenderRef ref="pipelineLog"/>
+    </Root>
+  </Loggers>
+</Configuration>

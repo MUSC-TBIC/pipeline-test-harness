@@ -1,32 +1,33 @@
 package edu.musc.tbic.writers;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.cas.CAS;
-import org.apache.uima.cas.CASException;
+import org.apache.uima.cas.FSIndex;
 import org.apache.uima.cas.FSIterator;
-import org.apache.uima.cas.impl.XmiCasSerializer;
+import org.apache.uima.cas.TypeSystem;
+import org.apache.uima.cas.text.AnnotationIndex;
+import org.apache.uima.cas.text.AnnotationFS;
 import org.apache.uima.examples.SourceDocumentInformation;
 import org.apache.uima.fit.descriptor.ConfigurationParameter;
 import org.apache.uima.jcas.JCas;
+import org.apache.uima.jcas.tcas.Annotation;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.resource.ResourceProcessException;
-import org.apache.uima.util.XMLSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-public class XmlWriter extends JCasAnnotator_ImplBase {
+public class CoNLLWriter extends JCasAnnotator_ImplBase {
 
-	private static final Logger mLogger = LoggerFactory.getLogger( XmlWriter.class );
+	private static final Logger mLogger = LoggerFactory.getLogger( CoNLLWriter.class );
 	
 	/**
 	 * Name of configuration parameter that must be set to the path of a directory into which the
@@ -66,7 +67,6 @@ public class XmlWriter extends JCasAnnotator_ImplBase {
 	@Override
 	public void process(JCas aJCas) throws AnalysisEngineProcessException {
     	mTotalDocs++;
-    	String modelFileName = null;
     	
 		String note_id = "";
 		FSIterator<?> it = aJCas.getAnnotationIndex(SourceDocumentInformation.type).iterator();
@@ -78,14 +78,16 @@ public class XmlWriter extends JCasAnnotator_ImplBase {
 		    note_id = note_id.substring( 0 , note_id.length() - 4 );
         }
         mLogger.debug( "Writing note_id '" + note_id + "' to disk" );
-    	String outFileName = note_id + ".xmi";
-		File outFile = new File( mOutputDir, outFileName );
-		// TODO - streamline by only creating this path when needed
-		File errFile = new File( mErrorDir, outFileName );
+        String outTxtFileName = note_id + ".txt";
+        File outTxtFile = new File( mOutputDir, outTxtFileName );
+        String outCoNLLFileName = note_id + ".conll";
+        File outCoNLLFile = new File( mOutputDir, outCoNLLFileName );
+        // TODO - streamline by only creating this path when needed
+		File errFile = new File( mErrorDir, outCoNLLFileName );
 		
-		// serialize XCAS and write to output file
+		// walk jCAS and write to output file
 		try {
-			writeXmi( aJCas.getCas() , outFile, errFile , modelFileName );
+		    writeCoNLL( aJCas.getCas() , outTxtFile , outCoNLLFile, errFile );
 			mGoodDocs++;
 		} catch ( IOException e ) {
 			mBadDocs++;
@@ -100,88 +102,61 @@ public class XmlWriter extends JCasAnnotator_ImplBase {
     }
 
     /**
-	 * Serialize a CAS to a file in XMI format
+	 * 
 	 *
 	 * @param aCas CAS to serialize
-	 * @param name output file
+     * @param txtName plain text output file
+     * @param conllName CoNLL-formatted output file
+     * @param error_name error output file
 	 * @throws SAXException
 	 * @throws Exception
 	 * @throws ResourceProcessException
 	 */
-	private void writeXmi( CAS aCas, File name ) throws IOException, SAXException {
-		FileOutputStream out = null;
+	private void writeCoNLL( CAS aCas, File txtName , File conllName , File error_name ) throws IOException, SAXException {
+	    FileWriter txtWriter = new FileWriter( txtName );
+	    FileWriter conllWriter = new FileWriter( conllName );
 
+	    String text = aCas.getDocumentText();
+	    AnnotationFS token;
 		try {
-			// write XMI
-			out = new FileOutputStream( name );
-			XmiCasSerializer ser = new XmiCasSerializer( aCas.getTypeSystem(),null, true );
-			XMLSerializer xmlSer = new XMLSerializer( out, true );
-			ser.serialize( aCas, xmlSer.getContentHandler() );
+            // write .txt file
+		    txtWriter.write( text );
+            // write .conll file
+		    TypeSystem typeSystem = aCas.getTypeSystem();
+		    org.apache.uima.cas.Type tokenType = typeSystem.getType( "org.apache.ctakes.typesystem.type.syntax.BaseToken" );
+            org.apache.uima.cas.Type sentenceType = typeSystem.getType( "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence" );
+
+            FSIndex dbIndex = aCas.getAnnotationIndex( sentenceType );
+            FSIterator spanIterator = dbIndex.iterator();
+
+            AnnotationIndex tokenIndex = (AnnotationIndex) aCas.getAnnotationIndex( tokenType );
+
+            while( spanIterator.hasNext() ) {
+              ArrayList<AnnotationFS> tokens = new ArrayList<AnnotationFS>(2048);
+
+              Annotation spanAnnotation = (Annotation) spanIterator.next();
+
+              FSIterator tokenIter = tokenIndex.subiterator(spanAnnotation);
+
+              // get all tokens for the specified block
+              while (tokenIter.hasNext()) {
+                token = (AnnotationFS) tokenIter.next();
+                // System.err.print ("--> token: '" + token.getCoveredText()
+                conllWriter.append( token.getCoveredText() + "\t" +
+                               token.getBegin() + "\t" +
+                               token.getEnd() + "\n" );
+              }
+              conllWriter.append( "\n" );
+            }
 		} finally {
-			if ( out != null ) {
-				out.close();
-			}
-		}
-	}
-	
-	/**
-	 * Serialize a CAS to a file in XMI format
-	 *
-	 * @param aCas CAS to serialize
-	 * @param name output file
-	 * @throws SAXException
-	 * @throws AnalysisEngineProcessException 
-	 * @throws Exception
-	 * @throws ResourceProcessException
-	 */
-	private void writeXmi( CAS aCas, File name, File error_name, String modelFileName ) throws IOException, SAXException, AnalysisEngineProcessException {
-		FileOutputStream out = null;
-		BufferedWriter error_out = null;
-
-		try {
-			// write XMI
-			out = new FileOutputStream( name );
-			XmiCasSerializer ser = new XmiCasSerializer( aCas.getTypeSystem() );
-			XMLSerializer xmlSer = new XMLSerializer( out, true );
-			ser.serialize( aCas, xmlSer.getContentHandler() );
-		} catch ( SAXParseException e ) {
-			mBadDocs++;
-			// TODO - this can be made much more efficient rather than repeating
-			//        the extraction twice in case of error
-			JCas jcas;
-			try {
-				jcas = aCas.getJCas();
-			} catch ( CASException e1 ) {
-				e1.printStackTrace();
-				throw new AnalysisEngineProcessException( e1 );
-			}
-			String note_id = "";
-	        FSIterator<?> it = jcas.getAnnotationIndex(SourceDocumentInformation.type).iterator();
-	        if( it.hasNext() ){
-	            SourceDocumentInformation fileLoc = (SourceDocumentInformation) it.next();
-	            note_id = fileLoc.getUri().toString();
-	        }
-	        if( note_id.endsWith( ".txt" ) ){
-	            note_id = note_id.substring( 0 , note_id.length() - 4 );
-	        }
-			mLogger.error( "SAXParseError when trying to write CAS for note_id '" + note_id + "' to file. " +
-							"Check fs.error_directory for details." );
-			// We only need to create the error file directory *if* we run 
-			// across a bum file
-			File errorDirectory = new File( mErrorDir );
-			if ( !errorDirectory.exists() ) {
-				errorDirectory.mkdirs();
-			}
-			error_out = new BufferedWriter( new FileWriter( error_name ) );
-//			error_out.write( "Note Source Value:  " + note_source_value + "\n\n" );
-			error_out.append( "Caught SAXParseException:  " + e + "\n\n" );
-        } finally {
-			if ( out != null ) {
-				out.close();
-			}
-			if ( error_out != null ) {
-				error_out.close();
-			}
+		    if( txtWriter != null ) {
+		        txtWriter.flush();
+		        txtWriter.close();
+            }
+		    if( conllWriter != null ) {
+                conllWriter.flush();
+                conllWriter.close();
+            }
 		}
 	}
 

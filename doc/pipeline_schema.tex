@@ -38,30 +38,41 @@ text width=10em, text centered, rounded corners, minimum height=4em]
       \path (topRow) -- coordinate[midway] (midRow) (botRow);
       
       \node at (topRow) (colReader) {};
-      \node[right=of colReader] (colCtakes) {};
-      \node[right=of colCtakes] (colExt) {};
-      \node[right=of colExt] (colMapper) {};
-      \node[right=of colMapper] (colAggs) {};
-      \node[right=110pt of colAggs] (colWriter) {};
+      \node[right=of colReader] (colSBD) {};
+      \node[right=of colSBD] (colTok) {};
+      \node[right=of colTok] (colTestsA) {};
+      \node[right=of colTestsA] (colWriter) {};
+      \node[right=of colWriter] (colTestsB) {};
+      \node[right=of colTestsB] (colEval) {};
 
       \node[lbl] at (topRow -| colReader) (readerLbl) {Collection Readers};
-      \node[lbl,text width=12em] at (topRow -| colCtakes) (sbdLbl) {Sentence Splitters};
-      \node[lbl] at (topRow -| colExt) (tokLbl) {Tokenizers};
-      \node[lbl] at (topRow -| colMapper) (testsLbl) {Tests};
-      \node[lbl] at (topRow -| colAggs) {\textbullet\textbullet\textbullet};
-      \node[lbl] at (topRow -| colWriter) {Output\\Writer(s)};
+      \node[lbl,text width=12em] at (topRow -| colSBD) (sbdLbl) {Sentence Splitters};
+      \node[lbl] at (topRow -| colTok) (tokLbl) {Tokenizers};
+      \node[lbl] at (topRow -| colTestsA) (testsLblA) {Tests};
+      \node[lbl] at (topRow -| colWriter) {Output\\Writers};
+      \node[lbl] at (topRow -| colTestsB) (testsLblB) {Tests};
+      \node[lbl] at (topRow -| colEval) {Evaluation};
 
       \node[block,below=7pt of readerLbl] (txtReader) {\texttt{txtReader}}; 
 
-      \node[otsAE] at (txtReader -| colCtakes) (newlineSBD) {RegEx\\(newline)}; 
+      \node[otsAE] at (txtReader -| colSBD) (newlineSBD) {RegEx\\(newline)}; 
       \node[otsAE,anchor=north] at ([yshift=-10pt]newlineSBD.south) (openNlpSBD) {OpenNLP\\(en-sent.bin)}; 
 
-      \node[rulebasedAE, text width=10em] at (txtReader -| colExt) (openNlpTok) {OpenNLP\\(en-token.bin,\\en-pos-max-ent.bin)};
+      \node[rulebasedAE, text width=10em] at (txtReader -| colTok) (openNlpTok) {OpenNLP\\(en-token.bin,\\en-pos-max-ent.bin)};
       \node[rulebasedAE,anchor=north] at ([yshift=-10pt]openNlpTok.south) (symbolTok) {OffsetTokenizer\\(symbol)};
       \node[rulebasedAE,anchor=north] at ([yshift=-10pt]symbolTok.south) (whitespaceTok) {OffsetTokenizer\\(whitespace)};
 
-      \node[block,text width=7em] at (txtReader -| colMapper) (conceptMapperTest) {ConceptMapper\\(symptoms)};
+      \node[block,text width=7em] at (txtReader -| colTestsA) (conceptMapperTest) {ConceptMapper\\(symptoms)};
 
       \node[block] at (txtReader -| colWriter) (xmiWriter) {XMI\\Writer};
+      \node[block, anchor=north] at ([yshift=-10pt]xmiWriter.south) (conllWriter) {CoNLL\\Writer};
+
+      \node[block,text width=9em] at (conllWriter -| colTestsB) (bilstmTest) {BiLSTM-CNN-CRF\\(deid)};
+
+      \node[block, text width=10em] at (txtReader -| colEval) (etude) {ETUDE Engine\\(symptoms, deid)};
+
+      \draw[thick] (xmiWriter.east) -- (etude.west);
+      \draw[thick] (conllWriter.east) -- (bilstmTest.west);
+      \draw[thick] (bilstmTest.east) -| (etude.south);
     \end{tikzpicture}
   \end{document}

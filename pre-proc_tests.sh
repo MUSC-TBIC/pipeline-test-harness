@@ -1,0 +1,119 @@
+#!/bin/bash
+
+## Variables you will need to update based on the build
+export VERSION=20.42.1
+## Variables you will need to customize to your set-up
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home
+export UIMA_HOME=/Users/pmh/bin/apache-uima-2.9.0
+export CONCEPTMAPPER_HOME="/Users/pmh/bin/ConceptMapper-2.10.2"
+export OPENNLP_HOME="/Users/pmh/bin/apache-opennlp-1.8.0"
+export PIPELINE_ROOT=/Users/pmh/git/pipeline-test-harness/apache-uima-2.9.0
+export ETUDE_DIR=/Users/pmh/git/etude
+export CONFIG_DIR=/Users/pmh/git/etude-engine-configs
+## TODO - we can't release this data so we need to make a releasable demo version
+export SYMPTOMS_REF_ROOT=/Users/pmh/git/COVID-19_NLP_Screening/data/triage_samples/webanno_eval_set
+export DEID_REF_ROOT=/Users/pmh/data/i2b2_corpora/2014_i2b2_challenge_deid/2014deidCorrectionsYoung
+
+## Variables that
+export PATH=$PATH:$UIMA_HOME/bin
+
+export UIMA_CLASSPATH=${PIPELINE_ROOT}/target/classes
+export UIMA_CLASSPATH=$UIMA_CLASSPATH:${PIPELINE_ROOT}/lib
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${CONCEPTMAPPER_HOME}/lib
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${CONCEPTMAPPER_HOME}/src
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${OPENNLP_HOME}/lib
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${PIPELINE_ROOT}/resources
+
+export UIMA_DATAPATH=${PIPELINE_ROOT}/resources
+
+export UIMA_JVM_OPTS="-Xms128M -Xmx2G"
+
+## Silence the warning that:
+## "I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU
+## supports instructions that this TensorFlow binary was not compiled
+## to use: AVX2 FMA"
+export TF_CPP_MIN_LOG_LEVEL=3
+
+export PROGRESS_FILE=logs/tests_${VERSION}.stdout
+
+echo "Pre-Processing Tests v${VERSION} `date`"
+echo "----------------------------------------------------------"
+
+for SBD in newline opennlp;do \
+    for TOKENIZER in opennlp symbol whitespace;do \
+	cd apache-uima-2.9.0; \
+	echo ""; \
+	echo "----------------------------------------------------------"; \
+	echo "Sentence Splitter = ${SBD} | Tokenizer = ${TOKENIZER}"; \
+	echo "----------------------------------------------------------"; \
+        time java -cp \
+             resources:target/pipeline-test-harness-${VERSION}-SNAPSHOT-jar-with-dependencies.jar:${CONCEPTMAPPER_HOME}/lib:${CONCEPTMAPPER_HOME}/bin \
+             edu.musc.tbic.uima.PipelineTestHarness \
+             --sentence-splitter ${SBD} \
+             --tokenizer ${TOKENIZER} \
+             --test-symptoms \
+	     --writers conll xmi \
+	     1>> logs/pipeline.stdout \
+	     2>> logs/pipeline.stderr; \
+	## Use BiLSTM-CNN-CRF to make prediction on CoNLL output
+	cd ..; \
+	echo ""; \
+	echo "Tagging PII:"; \
+	echo "------------"; \
+	echo ""; \
+	time python3 python/RunModel_CoNLL_Format_Med.py \
+		data/models/2014_mv1_20200226121316.h5 \
+		data/output/txt_newlineSent_opennlpTok_symptomsTest_conll; \
+        ## Score ConceptMapper symptoms
+	echo ""; \
+	echo "Scoring Symptoms:"; \
+	echo "-----------------"; \
+        export SYS_DIR=data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_xmi; \
+	time python3.7 ${ETUDE_DIR}/etude.py \
+                --progressbar-output none \
+                --reference-conf ${CONFIG_DIR}/uima/covid-nlp_xmi.conf \
+                --reference-input ${SYMPTOMS_REF_ROOT}/v8b_curated \
+                --test-conf ${CONFIG_DIR}/uima/covid-nlp_pipeline_xmi.conf \
+                --test-input ${SYS_DIR} \
+                --file-suffix ".xmi" \
+                --score-value "Symptom" \
+		--delim-prefix "| " \
+		--delim " | " \
+                --fuzzy-match-flags exact partial \
+                -m TP FP FN Precision Recall F1; \
+        ## Score BiLSTM-CNN-CRF deidentification
+        export SYS_DIR=data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_conll; \
+	echo ""; \
+	echo "Scoring i2b2 2014 Train:"; \
+	echo "------------------------"; \
+	time python3.7 ${ETUDE_DIR}/etude.py \
+                --progressbar-output none \
+                --reference-conf ${CONFIG_DIR}/i2b2/i2b2_2016_track-1_mapped_to_musc_v2.conf \
+                --reference-input ${DEID_REF_ROOT}/train/xml \
+                --test-conf ${CONFIG_DIR}/i2b2/brat_i2b2_2016_track-1_mapped_to_musc_v2.conf \
+                --test-input ${SYS_DIR} \
+                --file-suffix ".xml" ".ann" \
+                --score-key "i2b2 14/16" \
+		--by-type \
+		--delim-prefix "| " \
+		--delim " | " \
+                --fuzzy-match-flags exact partial \
+                -m TP FP FN Precision Recall F1; \
+	echo ""; \
+	echo "Scoring i2b2 2014 Test:"; \
+	echo "-----------------------"; \
+        time python3.7 ${ETUDE_DIR}/etude.py \
+                --progressbar-output none \
+                --reference-conf ${CONFIG_DIR}/i2b2/i2b2_2016_track-1_mapped_to_musc_v2.conf \
+                --reference-input ${DEID_REF_ROOT}/test/xml \
+                --test-conf ${CONFIG_DIR}/i2b2/brat_i2b2_2016_track-1_mapped_to_musc_v2.conf \
+                --test-input ${SYS_DIR} \
+                --file-suffix ".xml" ".ann" \
+                --score-key "i2b2 14/16" \
+		--by-type \
+		--delim-prefix "| " \
+		--delim " | " \
+                --fuzzy-match-flags exact partial \
+                -m TP FP FN Precision Recall F1; \
+            done; \
+            done

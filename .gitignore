@@ -3,9 +3,12 @@
 
 *.aux
 *.log
+*.pyc
 
 data/models
 data/output
+
+logs/
 
 apache-uima-2.9.0/.classpath
 apache-uima-2.9.0/.project
@@ -14,3 +17,6 @@ apache-uima-2.9.0/bin/
 apache-uima-2.9.0/resources/dict/conceptMapper_symptoms.xml
 apache-uima-2.9.0/resources/openNlpModels/
 apache-uima-2.9.0/target/
+
+python/neuralnets/
+python/util/

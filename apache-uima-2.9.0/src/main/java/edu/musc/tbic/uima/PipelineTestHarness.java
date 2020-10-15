@@ -11,6 +11,8 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.uima.UIMAException;
@@ -35,6 +37,7 @@ import edu.musc.tbic.opennlp.OpenNlpSentenceSplitter;
 import edu.musc.tbic.opennlp.OpenNlpTokenizer;
 import edu.musc.tbic.readers.FileSystemCollectionReader;
 import edu.musc.tbic.textspans.RegexSentenceSplitter;
+import edu.musc.tbic.writers.CoNLLWriter;
 import edu.musc.tbic.writers.XmlWriter;
 
 public class PipelineTestHarness extends JCasAnnotator_ImplBase {
@@ -68,10 +71,16 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
                 "Tokenizer module (Default: " + pipeline_tokenizer + "; Options: opennlp, symbol, whitespace)" );
         options.addOption( "ts" , "test-symptoms" , false , 
                 "Test symptom extraction using ConceptMapper" );
-        options.addOption( "w" , "writers" , true , 
-                "Pipeline writers (Default: " + String.join( ", " , pipeline_writers ) + ")" );
-        // TODO
-        //options.addOption( "c" , false , "Display PipelineTestHarness configuration settings" );
+        options.addOption( Option.builder( "w" )
+                            .hasArgs()
+                            .longOpt( "writers" )
+                            .desc( "Pipeline writers (Default: " + String.join( ", " , pipeline_writers ) + "; Options: conll, xmi)" )
+                            .build() );
+        options.addOption( Option.builder( "c" )
+                .hasArg( false )
+                .longOpt( "check" )
+                .desc( "Display PipelineTestHarness configuration settings" )
+                .build() );
         // TODO
         options.addOption( "s" , "soft-load" , false , "Soft-load all resources in all modules and report progress" );
         //
@@ -81,6 +90,34 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
             
             if( cmd.hasOption( "help" ) ){
                 help( options );
+            }
+
+            if( cmd.hasOption( "sentence-splitter" ) ){
+                pipeline_sbd = cmd.getOptionValue( "sentence-splitter" );
+            }
+            
+            if( cmd.hasOption( "tokenizer" ) ){
+                pipeline_tokenizer = cmd.getOptionValue( "tokenizer" );
+            }
+
+            if( cmd.hasOption( "test-symptoms" ) ){
+                pipeline_tests.add( "symptoms" );
+            }
+
+            if( cmd.hasOption( "writers" ) ){
+                pipeline_writers.clear();
+                for( String writer : cmd.getOptionValues( "writers" ) ){
+                    pipeline_writers.add( writer );
+                }
+            }
+
+            if( cmd.hasOption( "check" ) ){
+                System.out.println( "Reader:             " + pipeline_reader + "\n" +
+                                    "Sentence Splitter:  " + pipeline_sbd + "\n" +
+                                    "Tokenizer:          " + pipeline_tokenizer + "\n" +
+                                    "Tests:              " + String.join( ", " , pipeline_tests ) + "\n" +
+                                    "Writers:            " + String.join( ", " ,  pipeline_writers ) );
+                System.exit( 0 );
             }   
             
             if( cmd.hasOption( "soft-load" ) ){
@@ -88,19 +125,6 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
                         "\nThis option has not yet been implemented." );
                 System.exit(0);
             }
-            
-            if( cmd.hasOption( "tokenizer" ) ){
-                pipeline_tokenizer = cmd.getOptionValue( "tokenizer" );
-            }
-
-            if( cmd.hasOption( "sentence-splitter" ) ){
-                pipeline_sbd = cmd.getOptionValue( "sentence-splitter" );
-            }
-
-            if( cmd.hasOption( "test-symptoms" ) ){
-                pipeline_tests.add( "symptoms" );
-            }
-
         } catch( ParseException exp ) {
             // oops, something went wrong
             mLogger.error( "Parsing failed.  Reason: " + exp.getMessage() );
@@ -234,17 +258,28 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
         ///////////////////////////////////////////////////
         // Initialize XMI writer
         if( pipeline_writers.contains( "xmi" ) ){
-            // The default values for these output directories are
-            // determined by whether it is a test run or a 
-            // production run...
             String xml_output_dir = "../data/output/" + module_breadcrumbs + "_xmi";
             String xml_error_dir = "../data/output/" + module_breadcrumbs + "_error";
             // Then we use these values to construct our writer
+            mLogger.info( "Loading module for writing XML output" );
             AnalysisEngineDescription xmlWriter = AnalysisEngineFactory.createEngineDescription(
                     XmlWriter.class , 
                     XmlWriter.PARAM_OUTPUTDIR , xml_output_dir ,
                     XmlWriter.PARAM_ERRORDIR , xml_error_dir );
             builder.add( xmlWriter );
+        }
+        
+        // Initialize CoNLL writer
+        if( pipeline_writers.contains( "conll" ) ){
+            String conll_output_dir = "../data/output/" + module_breadcrumbs + "_conll";
+            String conll_error_dir = "../data/output/" + module_breadcrumbs + "_error";
+            // Then we use these values to construct our writer
+            mLogger.info( "Loading module for writing CoNLL output" );
+            AnalysisEngineDescription conllWriter = AnalysisEngineFactory.createEngineDescription(
+                    CoNLLWriter.class , 
+                    CoNLLWriter.PARAM_OUTPUTDIR , conll_output_dir ,
+                    CoNLLWriter.PARAM_ERRORDIR , conll_error_dir );
+            builder.add( conllWriter );
         }
         
         SimplePipeline.runPipeline( collectionReader , builder.createAggregateDescription() );
