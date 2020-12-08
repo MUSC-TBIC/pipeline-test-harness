@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Variables you will need to update based on the build
-export VERSION=20.42.2
+export VERSION=20.43.0
 ## Variables you will need to customize to your set-up
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home
 export UIMA_HOME=/Users/pmh/bin/apache-uima-2.9.0
@@ -36,16 +36,16 @@ export TF_CPP_MIN_LOG_LEVEL=3
 
 export PROGRESS_FILE=logs/tests_${VERSION}.stdout
 
-echo "Pre-Processing Tests v${VERSION} `date`"
-echo "----------------------------------------------------------"
+echo ""
+echo "* Pre-Processing Tests v${VERSION}"
+echo "** `date`"
 
 for SBD in newline opennlp;do \
-    for TOKENIZER in opennlp symbol whitespace;do \
+    for TOKENIZER in opennlp opennlpAggressive symbol whitespace;do \
 	cd apache-uima-2.9.0; \
 	echo ""; \
-	echo "----------------------------------------------------------"; \
-	echo "Sentence Splitter = ${SBD} | Tokenizer = ${TOKENIZER}"; \
-	echo "----------------------------------------------------------"; \
+	echo "*** Sentence Splitter = ${SBD} | Tokenizer = ${TOKENIZER}"; \
+	echo ""; \
         time java -cp \
              resources:target/pipeline-test-harness-${VERSION}-SNAPSHOT-jar-with-dependencies.jar:${CONCEPTMAPPER_HOME}/lib:${CONCEPTMAPPER_HOME}/bin \
              edu.musc.tbic.uima.PipelineTestHarness \
@@ -58,16 +58,15 @@ for SBD in newline opennlp;do \
 	## Use BiLSTM-CNN-CRF to make prediction on CoNLL output
 	cd ..; \
 	echo ""; \
-	echo "Tagging PII:"; \
-	echo "------------"; \
+	echo "**** Tagging PII:"; \
 	echo ""; \
 	time python3 python/RunModel_CoNLL_Format_Med.py \
 		data/models/2014_mv1_20200226121316.h5 \
 		data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_conll; \
         ## Score ConceptMapper symptoms
 	echo ""; \
-	echo "Scoring Symptoms:"; \
-	echo "-----------------"; \
+	echo "**** Scoring Symptoms:"; \
+	echo ""; \
         export SYS_DIR=data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_xmi; \
 	time python3.7 ${ETUDE_DIR}/etude.py \
                 --progressbar-output none \
@@ -84,8 +83,8 @@ for SBD in newline opennlp;do \
         ## Score BiLSTM-CNN-CRF deidentification
         export SYS_DIR=data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_conll; \
 	echo ""; \
-	echo "Scoring i2b2 2014 Train:"; \
-	echo "------------------------"; \
+	echo "**** Scoring i2b2 2014 Train:"; \
+	echo ""; \
 	time python3.7 ${ETUDE_DIR}/etude.py \
                 --progressbar-output none \
                 --reference-conf ${CONFIG_DIR}/i2b2/i2b2_2016_track-1_mapped_to_musc_v2.conf \
@@ -93,15 +92,15 @@ for SBD in newline opennlp;do \
                 --test-conf ${CONFIG_DIR}/i2b2/brat_i2b2_2016_track-1_mapped_to_musc_v2.conf \
                 --test-input ${SYS_DIR} \
                 --file-suffix ".xml" ".ann" \
-                --score-key "i2b2 14/16" \
+                --score-key "i2b2 14" \
 		--by-type \
 		--delim-prefix "| " \
 		--delim " | " \
                 --fuzzy-match-flags exact partial \
                 -m TP FP FN Precision Recall F1; \
 	echo ""; \
-	echo "Scoring i2b2 2014 Test:"; \
-	echo "-----------------------"; \
+	echo "**** Scoring i2b2 2014 Test:"; \
+	echo ""; \
         time python3.7 ${ETUDE_DIR}/etude.py \
                 --progressbar-output none \
                 --reference-conf ${CONFIG_DIR}/i2b2/i2b2_2016_track-1_mapped_to_musc_v2.conf \
@@ -109,7 +108,7 @@ for SBD in newline opennlp;do \
                 --test-conf ${CONFIG_DIR}/i2b2/brat_i2b2_2016_track-1_mapped_to_musc_v2.conf \
                 --test-input ${SYS_DIR} \
                 --file-suffix ".xml" ".ann" \
-                --score-key "i2b2 14/16" \
+                --score-key "i2b2 14" \
 		--by-type \
 		--delim-prefix "| " \
 		--delim " | " \

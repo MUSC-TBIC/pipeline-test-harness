@@ -216,7 +216,28 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
             conceptMapper_token_type = "org.apache.ctakes.typesystem.type.syntax.BaseToken";
             module_breadcrumbs += "_opennlpTok";
             AnalysisEngineDescription openNlpTokenizer = AnalysisEngineFactory.createEngineDescription(
-                    OpenNlpTokenizer.class );
+                    OpenNlpTokenizer.class ,
+                    OpenNlpTokenizer.PARAM_MODELPATH , "resources/openNlpModels/" ,
+                    OpenNlpTokenizer.PARAM_TOKENIZERMODEL , "en-token.bin" ,
+                    OpenNlpTokenizer.PARAM_POSMODEL , "en-pos-maxent.bin" );
+            tmpTokenizerDescription = File.createTempFile("prefix_", "_suffix");
+            tmpTokenizerDescription.deleteOnExit();
+            try {
+                openNlpTokenizer.toXML(new FileWriter(tmpTokenizerDescription));
+            } catch (SAXException e) {
+                // TODO - add something here
+            }
+            builder.add( openNlpTokenizer );
+        } else if( pipeline_tokenizer.equals( "opennlpAggressive" ) ){
+            mLogger.info( "Loading OpenNLP's en-token and en-pos-maxent models" );
+            conceptMapper_token_type = "org.apache.ctakes.typesystem.type.syntax.BaseToken";
+            module_breadcrumbs += "_opennlpAggressiveTok";
+            AnalysisEngineDescription openNlpTokenizer = AnalysisEngineFactory.createEngineDescription(
+                    OpenNlpTokenizer.class ,
+                    OpenNlpTokenizer.PARAM_MODELPATH , "resources/openNlpModels/" ,
+                    OpenNlpTokenizer.PARAM_TOKENIZERMODEL , "en-token.bin" ,
+                    OpenNlpTokenizer.PARAM_TOKENIZERPATCH , "aggressive" ,
+                    OpenNlpTokenizer.PARAM_POSMODEL , "en-pos-maxent.bin" );
             tmpTokenizerDescription = File.createTempFile("prefix_", "_suffix");
             tmpTokenizerDescription.deleteOnExit();
             try {
