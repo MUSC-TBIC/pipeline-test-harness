@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## Variables you will need to update based on the build
-export VERSION=20.43.0
+export VERSION=20.50.2
 ## Variables you will need to customize to your set-up
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home
 export UIMA_HOME=/Users/pmh/bin/apache-uima-2.9.0
@@ -40,7 +40,7 @@ echo ""
 echo "* Pre-Processing Tests v${VERSION}"
 echo "** `date`"
 
-for SBD in newline opennlp;do \
+for SBD in newline opennlp opennlpMultispace;do \
     for TOKENIZER in opennlp opennlpAggressive symbol whitespace;do \
 	cd apache-uima-2.9.0; \
 	echo ""; \
@@ -60,7 +60,7 @@ for SBD in newline opennlp;do \
 	echo ""; \
 	echo "**** Tagging PII:"; \
 	echo ""; \
-	time python3 python/RunModel_CoNLL_Format_Med.py \
+	time python3.5 python/RunModel_CoNLL_Format_Med.py \
 		data/models/2014_mv1_20200226121316.h5 \
 		data/output/txt_${SBD}Sent_${TOKENIZER}Tok_symptomsTest_conll; \
         ## Score ConceptMapper symptoms
