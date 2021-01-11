@@ -17,6 +17,7 @@ apache-uima-2.9.0/.settings/
 apache-uima-2.9.0/bin/
 apache-uima-2.9.0/resources/dict/conceptMapper_symptoms.xml
 apache-uima-2.9.0/resources/openNlpModels/
+apache-uima-2.9.0/resources/ctakesModels/
 apache-uima-2.9.0/target/
 
 python/neuralnets/

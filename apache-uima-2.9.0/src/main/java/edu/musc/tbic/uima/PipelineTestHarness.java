@@ -12,9 +12,11 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.ctakes.core.ae.SentenceDetector;
+import org.apache.ctakes.core.ae.SentenceDetectorAnnotatorBIO;
+import org.apache.ctakes.core.ae.SimpleSegmentAnnotator;
 import org.apache.uima.UIMAException;
 import org.apache.uima.analysis_engine.AnalysisEngineDescription;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
@@ -72,9 +74,9 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
         options.addOption( "r" , "reader" , true , 
                 "Pipeline reader (Default: " + pipeline_reader + ")" );
         options.addOption( "sbd" , "sentence-splitter" , true , 
-                "Sentence splitting module (Default: " + pipeline_sbd + "; Options: newline, opennlp)" );
+                "Sentence splitting module (Default: " + pipeline_sbd + "; Options: ctakes, ctakesBIO, newline, opennlp, opennlpMultispace)" );
         options.addOption( "tok" , "tokenizer" , true , 
-                "Tokenizer module (Default: " + pipeline_tokenizer + "; Options: opennlp, symbol, whitespace)" );
+                "Tokenizer module (Default: " + pipeline_tokenizer + "; Options: opennlp, opennlpAggressive, symbol, whitespace)" );
         options.addOption( "ts" , "test-symptoms" , false , 
                 "Test symptom extraction using ConceptMapper" );
         options.addOption( Option.builder( "w" )
@@ -170,7 +172,28 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
         // Sentence Splitters
         ///////////////////////////////////////////////////
         String sentence_type = null;
-        if( pipeline_sbd.equals( "opennlp" ) ){
+        if( pipeline_sbd.equals( "ctakes" ) ){
+            mLogger.info( "Loading cTAKES SentenceDetectorAnnotator" );
+            sentence_type = "org.apache.ctakes.typesystem.type.textspan.Sentence";
+            module_breadcrumbs += "_ctakesSent";
+            AnalysisEngineDescription ctakesSimpleSegments = AnalysisEngineFactory.createEngineDescription(
+                    SimpleSegmentAnnotator.class );
+            builder.add( ctakesSimpleSegments );
+            AnalysisEngineDescription ctakesSentence = AnalysisEngineFactory.createEngineDescription(
+                    SentenceDetector.class ,
+                    SentenceDetector.PARAM_SD_MODEL_FILE , "ctakesModels/sd-med-model.zip" );
+            builder.add( ctakesSentence );
+        } else if( pipeline_sbd.equals( "ctakesBIO" ) ){
+            mLogger.info( "Loading cTAKES SentenceDetectorAnnotatorBIO" );
+            sentence_type = "org.apache.ctakes.typesystem.type.textspan.Sentence";
+            module_breadcrumbs += "_ctakesBioSent";
+            AnalysisEngineDescription ctakesSimpleSegments = AnalysisEngineFactory.createEngineDescription(
+                    SimpleSegmentAnnotator.class );
+            builder.add( ctakesSimpleSegments );
+            AnalysisEngineDescription ctakesBioSentence = 
+                    SentenceDetectorAnnotatorBIO.getDescription( "resources/ctakesModels/model.jar" );
+            builder.add( ctakesBioSentence );
+        } else if( pipeline_sbd.equals( "opennlp" ) ){
             mLogger.info( "Loading OpenNLP's en-sent model" );
             sentence_type = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence";
             module_breadcrumbs += "_opennlpSent";

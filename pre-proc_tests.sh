@@ -1,12 +1,13 @@
 #!/bin/bash
 
 ## Variables you will need to update based on the build
-export VERSION=20.50.2
+export VERSION=21.01.0
 ## Variables you will need to customize to your set-up
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home
 export UIMA_HOME=/Users/pmh/bin/apache-uima-2.9.0
 export CONCEPTMAPPER_HOME="/Users/pmh/bin/ConceptMapper-2.10.2"
 export OPENNLP_HOME="/Users/pmh/bin/apache-opennlp-1.8.0"
+export CTAKES_HOME="/Users/pmh/bin/apache-ctakes-4.0.0"
 export PIPELINE_ROOT=/Users/pmh/git/pipeline-test-harness/apache-uima-2.9.0
 export ETUDE_DIR=/Users/pmh/git/etude
 export CONFIG_DIR=/Users/pmh/git/etude-engine-configs
@@ -22,6 +23,7 @@ export UIMA_CLASSPATH=$UIMA_CLASSPATH:${PIPELINE_ROOT}/lib
 export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${CONCEPTMAPPER_HOME}/lib
 export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${CONCEPTMAPPER_HOME}/src
 export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${OPENNLP_HOME}/lib
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${CTAKES_HOME}/lib:${CTAKES_HOME}/resources
 export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${PIPELINE_ROOT}/resources
 
 export UIMA_DATAPATH=${PIPELINE_ROOT}/resources
@@ -40,14 +42,14 @@ echo ""
 echo "* Pre-Processing Tests v${VERSION}"
 echo "** `date`"
 
-for SBD in newline opennlp opennlpMultispace;do \
+for SBD in ctakes ctakesBIO newline opennlp opennlpMultispace;do \
     for TOKENIZER in opennlp opennlpAggressive symbol whitespace;do \
 	cd apache-uima-2.9.0; \
 	echo ""; \
 	echo "*** Sentence Splitter = ${SBD} | Tokenizer = ${TOKENIZER}"; \
 	echo ""; \
         time java -cp \
-             resources:target/pipeline-test-harness-${VERSION}-SNAPSHOT-jar-with-dependencies.jar:${CONCEPTMAPPER_HOME}/lib:${CONCEPTMAPPER_HOME}/bin \
+             resources:target/classes:target/pipeline-test-harness-${VERSION}-SNAPSHOT-jar-with-dependencies.jar:${CONCEPTMAPPER_HOME}/lib:${CONCEPTMAPPER_HOME}/bin \
              edu.musc.tbic.uima.PipelineTestHarness \
              --sentence-splitter ${SBD} \
              --tokenizer ${TOKENIZER} \
