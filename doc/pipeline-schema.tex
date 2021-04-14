@@ -1,0 +1,135 @@
+\documentclass{standalone}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+
+\usepackage{unicode-math}
+\setmathfont[Scale=MatchLowercase]{Asana-Math.otf}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,shadows,fit,decorations.pathreplacing,positioning}
+
+\begin{document}
+
+% Define block styles
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=white, 
+    text width=5em, text centered, rounded corners, minimum
+    height=4em]
+\tikzstyle{unblock} = [block]
+\tikzstyle{lbl} = [rectangle,
+text width=8em, text centered, rounded corners, minimum height=4em]
+\tikzstyle{blank} = [text width=10em, text centered, rounded corners, minimum height=4em]
+
+%%\tikzstyle{otsAE} = [block,text width=20em, minimum height=2em, fill=gray!20]
+\tikzstyle{regexAE} = [block,fill=green!20]
+\tikzstyle{otsAE} = [rulebasedAE,text width=7em, minimum height=2em, fill=gray!20]
+\tikzstyle{rulebasedAE} = [block, fill=gray!30,text width=7em, minimum height=2em]
+\tikzstyle{decisionAggAE} = [rulebasedAE,text width=10em, minimum height=2em, fill=purple!20]
+
+\tikzstyle{line} = [thick,draw,latex reversed-latex]
+\tikzstyle{cloud} = [draw, ellipse,fill=white, node distance=3cm,
+    minimum height=2em, text width=4.5em, text badly centered]
+
+    \begin{tikzpicture}[node distance = 100pt, auto]%%,nodes={draw}]
+
+      \node (topRow) {};
+      
+      \node at (topRow) (colReader) {};
+      \node[right=115pt of colReader] (colSBD) {};
+      \node[right=155pt of colSBD] (colTok) {};
+      \node[right=of colTok] (colTestsA) {};
+      \node[right=75pt of colTestsA] (colWriter) {};
+      \node[right=90pt of colWriter] (colTestsB) {}; 
+      \node[right=of colTestsB] (colEval) {}; 
+      \node[right=75pt of colEval] (rightEdge) {};
+
+      \node[lbl] at (topRow -| colReader) (readerLbl) {Collection Readers};
+      \node[lbl,text width=10em] at (topRow -| colSBD) (sbdLbl) {Sentence Splitters};
+      \node[lbl] at (topRow -| colTok) (tokLbl) {Tokenizers};
+      \node[lbl] at (topRow -| colTestsA) (testsLblA) {Tests};
+      \node[lbl] at (topRow -| colWriter) {Output Writers};
+      \node[lbl] at (topRow -| colTestsB) (testsLblB) {Tests};
+      \node[lbl] at (topRow -| colEval) {Evaluation};
+
+      \node[block,below=-7pt of readerLbl] (txtReader) {\texttt{txtReader}}; 
+
+      \node[otsAE] at (txtReader -| colSBD) (newlineSBD) {RegEx\\(newline)}; 
+      \node[otsAE,anchor=north] at ([yshift=-14pt]newlineSBD.south) (openNlpSBD) {OpenNLP\\(en-sent.bin)}; 
+      \node[otsAE, text width=9em,anchor=north] at ([yshift=-14pt]openNlpSBD.south) (ctakesVanilla) {cTAKES\\(SentenceDetector)}; 
+      \node[otsAE, text width=14em,anchor=north] at ([yshift=-14pt]ctakesVanilla.south) (ctakesBIO) {cTAKES\\(SentenceDetectorAnnotatorBIO)}; 
+      \path (newlineSBD) -- coordinate[midway] (midRow) (ctakesBIO);
+      \node[below=4pt of ctakesBIO] (botRow) {};
+      
+      \node[rulebasedAE, text width=10em, minimum height=3em] at (txtReader -| colTok) (openNlpTok) {OpenNLP\\(en-token.bin,\\en-pos-max-ent.bin)};
+      \node[rulebasedAE,anchor=north] at ([yshift=-10pt]openNlpTok.south) (openNlpAggTok) {OpenNLP\\(aggressive)};
+      \node[rulebasedAE,anchor=north] at ([yshift=-10pt]openNlpAggTok.south) (symbolTok) {OffsetTokenizer\\(symbol)};
+      \node[rulebasedAE,anchor=north] at ([yshift=-10pt]symbolTok.south) (whitespaceTok) {OffsetTokenizer\\(whitespace)};
+
+      \node[block,text width=7em] at (txtReader -| colTestsA) (conceptMapperTest) {ConceptMapper\\(symptoms)};
+
+      \node[block] at (txtReader -| colWriter) (xmiWriter) {XMI\\Writer};
+      \node[block, anchor=north] at ([yshift=-10pt]xmiWriter.south) (conllWriter) {CoNLL\\Writer};
+
+      \node[block,text width=9em] at (conllWriter -| colTestsB) (bilstmTest) {BiLSTM-CNN-CRF\\(deid)};
+
+      \node[block, text width=10em] at (txtReader -| colEval) (etude) {ETUDE Engine\\(symptoms, deid)};
+
+      %%
+      \draw[line] (txtReader.east) -- (newlineSBD.west); 
+      \draw[line] (txtReader.east) --
+          ([xshift=8pt,yshift=0pt]txtReader.east) |-
+          (openNlpSBD.west); 
+      \draw[line] (txtReader.east) --
+          ([xshift=8pt,yshift=0pt]txtReader.east) |-
+          (ctakesVanilla.west); 
+      \draw[line] (txtReader.east) --
+          ([xshift=8pt,yshift=0pt]txtReader.east) |-
+          (ctakesBIO.west);
+      %%
+      \node at (midRow -| ctakesBIO.east) (leftNexus) {};
+      \node at (midRow -| openNlpTok.west) (rightNexus) {};
+      \draw[thick,latex reversed-]  (newlineSBD.east) -| 
+          ([xshift=8pt,yshift=0pt]leftNexus.center) --
+          ([xshift=-8pt,yshift=0pt]rightNexus.center);
+      \draw[thick,latex reversed-]  (openNlpSBD.east) -| 
+          ([xshift=8pt,yshift=0pt]leftNexus.center) --
+          ([xshift=-8pt,yshift=0pt]rightNexus.center);
+      \draw[thick,latex reversed-]  (ctakesVanilla.east) -| 
+          ([xshift=8pt,yshift=0pt]leftNexus.center) --
+          ([xshift=-8pt,yshift=0pt]rightNexus.center);
+      \draw[thick,latex reversed-]  (ctakesBIO.east) -| 
+          ([xshift=8pt,yshift=0pt]leftNexus.center) --
+          ([xshift=-8pt,yshift=0pt]rightNexus.center);
+      \draw[thick,-latex] ([xshift=-8pt,yshift=0pt]rightNexus.center) |-
+          (openNlpTok.west);
+      \draw[thick,-latex] ([xshift=-8pt,yshift=0pt]rightNexus.center) |-
+          (openNlpAggTok.west);
+      \draw[thick,-latex] ([xshift=-8pt,yshift=0pt]rightNexus.center) |-
+          (symbolTok.west);
+      \draw[thick,-latex] ([xshift=-8pt,yshift=0pt]rightNexus.center) |-
+          (whitespaceTok.west);
+      %%
+      \draw[line] (openNlpTok.east) -- (conceptMapperTest.west);
+      \draw[line] (openNlpAggTok.east) -|
+          ([xshift=-8pt,yshift=0pt]conceptMapperTest.west) --
+          (conceptMapperTest.west);
+      \draw[line] (symbolTok.east) -|
+          ([xshift=-8pt,yshift=0pt]conceptMapperTest.west) --
+          (conceptMapperTest.west);
+      \draw[line] (whitespaceTok.east) -|
+          ([xshift=-8pt,yshift=0pt]conceptMapperTest.west) --
+          (conceptMapperTest.west);
+      %%
+      \draw[line] (conceptMapperTest.east) -- (xmiWriter.west);
+      \draw[line] (conceptMapperTest.east) --
+          ([xshift=5pt,yshift=0pt]conceptMapperTest.east) |-
+          (conllWriter.west);
+      %%
+      \draw[line] (xmiWriter.east) -- (etude.west);
+      \draw[line] (conllWriter.east) -- (bilstmTest.west);
+      %%
+      \draw[line] (bilstmTest.east) -| (etude.south);
+    \end{tikzpicture}
+  \end{document}
