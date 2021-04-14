@@ -1,0 +1,42 @@
+#!/bin/bash
+
+## Variables you will need to update based on the build
+export VERSION=21.15.0
+## Variables you will need to customize to your set-up
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home
+export UIMA_HOME=/path/to/apache-uima-2.9.0
+export OPENNLP_HOME="/path/to/apache-opennlp-1.8.0"
+export PIPELINE_ROOT=/path/to/repo/pipeline-test-harness/apache-uima-2.9.0
+## Variables you will need to customize based on the current run
+export INPUT_DIR=/tmp/inTxt
+export OUTPUT_DIR=/tmp/outCasXmi
+
+## Other variables
+export PATH=$PATH:$UIMA_HOME/bin
+
+export UIMA_CLASSPATH=${PIPELINE_ROOT}/target/classes
+export UIMA_CLASSPATH=$UIMA_CLASSPATH:${PIPELINE_ROOT}/lib
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${OPENNLP_HOME}/lib
+export UIMA_CLASSPATH=${UIMA_CLASSPATH}:${PIPELINE_ROOT}/resources
+
+export UIMA_DATAPATH=${PIPELINE_ROOT}/resources
+
+export UIMA_JVM_OPTS="-Xms128M -Xmx2G"
+
+export SBD=opennlpMultispace
+export TOKENIZER=opennlpAggressive
+
+cd ${PIPELINE_ROOT}
+
+java -cp \
+     resources:target/classes:target/pipeline-test-harness-${VERSION}-SNAPSHOT-jar-with-dependencies.jar \
+     edu.musc.tbic.uima.PipelineTestHarness \
+     --sentence-splitter ${SBD} \
+     --tokenizer ${TOKENIZER} \
+     --writers xmi \
+     --input-dir ${INPUT_DIR} \
+     --output-dir ${OUTPUT_DIR}
+
+echo ""
+echo "Output written to:  ${OUTPUT_DIR}/txt_${SBD}Sent_${TOKENIZER}Tok_xmi"
+echo ""

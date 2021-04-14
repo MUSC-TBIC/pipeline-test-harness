@@ -205,7 +205,7 @@ public class PipelineTestHarness extends JCasAnnotator_ImplBase {
         } else if( pipeline_sbd.equals( "opennlpMultispace" ) ){
             mLogger.info( "Loading OpenNLP's en-sent model with multi-space patch" );
             sentence_type = "de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence";
-            module_breadcrumbs += "_opennlpSentMultispaceSent";
+            module_breadcrumbs += "_opennlpMultispaceSent";
             AnalysisEngineDescription openNlpSentence = AnalysisEngineFactory.createEngineDescription(
                     OpenNlpSentenceSplitter.class ,
                     OpenNlpSentenceSplitter.PARAM_MODELPATH , "resources/openNlpModels/" ,

@@ -5,6 +5,8 @@
 *.log
 *.pyc
 
+scripts/*.sh
+
 data/models
 data/output
 data/output_*
